@@ -637,6 +637,8 @@ MonoBehaviour:
   stepHeight: 0.55
   stepSmooth: 8
   stepCheckDistance: 0.45
+  jumpForce: 6.8
+  fallMultiplier: 2.2
 --- !u!114 &7040990986935755356
 MonoBehaviour:
   m_ObjectHideFlags: 0

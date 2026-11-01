@@ -92,7 +92,7 @@ public class SceneLoadingScreen : MonoBehaviour
         contentRect.anchoredPosition = Vector2.zero;
 
         // Oyun Başlığı
-        CreateText(contentObj.transform, "Title", "<b>EKO-MUCİT</b>", 48f, new Vector2(0f, 90f), new Color(0.35f, 0.95f, 0.65f), FontStyles.Bold);
+        CreateText(contentObj.transform, "Title", "<b>ECOBUSTERS</b>", 48f, new Vector2(0f, 90f), new Color(0.35f, 0.95f, 0.65f), FontStyles.Bold);
 
         // Alt Başlık
         CreateText(contentObj.transform, "Subtitle", "DOĞAYI GERİ KAZAN • ŞEHRİ DÖNÜŞTÜR", 18f, new Vector2(0f, 45f), new Color(0.72f, 0.85f, 0.92f), FontStyles.Normal);

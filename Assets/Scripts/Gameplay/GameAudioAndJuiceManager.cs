@@ -324,8 +324,35 @@ public class GameAudioAndJuiceManager : MonoBehaviour
         if (clipError == null)
             clipError = CreateErrorBuzzClip(sampleRate);
 
+        if (clipJump == null)
+            clipJump = CreateJumpBoingClip(sampleRate);
+
         if (clipAmbientMusic == null)
             clipAmbientMusic = CreateCozyAmbientMusicLoop(sampleRate);
+    }
+
+    private AudioClip CreateJumpBoingClip(int sampleRate)
+    {
+        // Tatlı, tok ve dinamik platformer "Boing/Hop" zıplama sesi
+        int samples = Mathf.RoundToInt(sampleRate * 0.22f);
+        float[] data = new float[samples];
+        float phase = 0f;
+
+        for (int i = 0; i < samples; i++)
+        {
+            float t = (float)i / samples;
+            // Frekans 160Hz'den 420Hz'e tatlı bir kavisle yükselir
+            float freq = Mathf.Lerp(160f, 420f, Mathf.Sqrt(t));
+            phase += 2f * Mathf.PI * freq / sampleRate;
+
+            float env = Mathf.Sin(t * Mathf.PI) * (1f - t * 0.45f);
+            float sample = Mathf.Sin(phase) * 0.75f + Mathf.Sin(phase * 2f) * 0.25f;
+            data[i] = sample * env * 0.85f;
+        }
+
+        AudioClip clip = AudioClip.Create("SFX_Jump_Procedural", samples, 1, sampleRate, false);
+        clip.SetData(data, 0);
+        return clip;
     }
 
     private AudioClip CreateCollectPopClip(int sampleRate)

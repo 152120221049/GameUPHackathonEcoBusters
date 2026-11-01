@@ -1661,7 +1661,7 @@ public class GameplayHUD : MonoBehaviour
             if (promptBoxBg != null) promptBoxBg.color = new Color(0.1f, 0.22f, 0.35f, 0.95f);
             if (inventory != null && inventory.IsBackpackFull)
             {
-                promptText.text = "<color=#FF5555><b>[ÇANTA DOLU]</b> Atıklar çekilemiyor! Atölyede üretim veya yükseltme yapın.</color>";
+                promptText.text = "<color=#FF5555><b>[ÇANTA DOLU]</b> Üst pusuladaki <b>[ÜS]</b> yönüne gidip Atölyede üretim/yükseltme yapın!</color>";
             }
             else
             {
@@ -1674,11 +1674,26 @@ public class GameplayHUD : MonoBehaviour
             bool hasVac = PlayerProgression.Instance != null && PlayerProgression.Instance.HasVacuumUnlocked;
             string vacTip = hasVac ? "<b>[Sağ Tık]</b> Vakum  |  " : "";
             
-            // Eğer oyuncunun elinde organik atık veya hurda birikmişse nazikçe [B] tuşunu ve ağaç/yapı dikimini fısılda
-            bool hasMaterials = inventory != null && (inventory.GetCount(ItemType.OrganicWaste) >= 5 || inventory.GetCount(ItemType.ScrapMetal) >= 5);
-            string buildHint = hasMaterials ? "<color=#50FA7B><b>[B] Ağaç Dik & İnşa Et ✨</b></color>" : "<b>[B]</b> İnşa & Enerji";
+            // Eğer çantada çöp varsa oyuncuya ne yapacağını açıkça göster:
+            int totalTrash = inventory != null ? inventory.TotalItemsCount : 0;
+            string guideHint = "";
+            if (totalTrash >= 10 && terrainGenerator != null && playerTransform != null)
+            {
+                Vector3 toBase = terrainGenerator.BaseWorldPosition - playerTransform.position;
+                toBase.y = 0f;
+                string arrow = GetIsoCompassArrow(toBase);
+                int dist = Mathf.RoundToInt(toBase.magnitude);
+                guideHint = $"<color=#8BE9FD><b>{arrow} ÜS (Atölye): {dist}m</b> (Atıkları dönüştür/üret)</color>  |  ";
+            }
+            else if (totalTrash > 0)
+            {
+                guideHint = "<color=#F1FA8C>Çöpleri Üsteki Atölyede işle/dönüştür</color>  |  ";
+            }
 
-            promptText.text = $"<color=#E0E0E0><b>[Sol Tık / E]</b> Topla  |  {vacTip}{buildHint}  |  <b>[ESC]</b> Ayarlar</color>";
+            bool hasMaterials = inventory != null && (inventory.GetCount(ItemType.OrganicWaste) >= 5 || inventory.GetCount(ItemType.ScrapMetal) >= 5);
+            string buildHint = hasMaterials ? "<color=#50FA7B><b>[B] Ağaç Dik & İnşa</b></color>" : "<b>[B]</b> İnşa";
+
+            promptText.text = $"{guideHint}<color=#E0E0E0><b>[Sol Tık/E]</b> Topla | <b>[Space]</b> Zıpla | {vacTip}{buildHint}</color>";
         }
     }
 

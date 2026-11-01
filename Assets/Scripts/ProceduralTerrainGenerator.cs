@@ -1161,6 +1161,15 @@ public class ProceduralTerrainGenerator : MonoBehaviour
 
         // Nehir veya kıyı içeren chunk'larda her Y satırı boyunca bitişik kara ve nehir şeritlerini birleştir
         Material waterMat = RiverWaterAndFogSystem.Instance != null ? RiverWaterAndFogSystem.Instance.SharedWaterMaterial : null;
+        if (waterMat == null)
+        {
+            var rsys = FindFirstObjectByType<RiverWaterAndFogSystem>();
+            if (rsys != null) waterMat = rsys.SharedWaterMaterial;
+        }
+        if (waterMat == null)
+        {
+            waterMat = Resources.Load<Material>("M_RiverWater_URP") ?? Resources.Load<Material>("M_FallbackLit");
+        }
 
         for (int y = startY; y < endY; y++)
         {
@@ -1748,6 +1757,11 @@ public class ProceduralTerrainGenerator : MonoBehaviour
         if (mat == null || mat.shader == null || mat.shader.name == "Default-Material" || mat.shader.name == "Standard")
         {
             Material urpBase = RiverWaterAndFogSystem.Instance != null ? RiverWaterAndFogSystem.Instance.SharedWaterMaterial : null;
+            if (urpBase == null)
+            {
+                urpBase = Resources.Load<Material>("M_RiverWater_URP") ?? Resources.Load<Material>("M_FloorFallback") ?? Resources.Load<Material>("M_FallbackLit");
+            }
+
             if (urpBase != null && urpBase.shader != null)
             {
                 mat = new Material(urpBase.shader);
@@ -1755,15 +1769,18 @@ public class ProceduralTerrainGenerator : MonoBehaviour
             else
             {
                 Shader s = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Simple Lit") ?? Shader.Find("Standard");
-                mat = new Material(s);
+                mat = (s != null) ? new Material(s) : (urpBase != null ? new Material(urpBase) : null);
             }
-            renderer.material = mat;
+            if (mat != null) renderer.material = mat;
         }
 
-        if (mat.HasProperty("_BaseColor"))
-            mat.SetColor("_BaseColor", color);
-        if (mat.HasProperty("_Color"))
-            mat.SetColor("_Color", color);
+        if (mat != null)
+        {
+            if (mat.HasProperty("_BaseColor"))
+                mat.SetColor("_BaseColor", color);
+            if (mat.HasProperty("_Color"))
+                mat.SetColor("_Color", color);
+        }
     }
 
     private GameObject GetPrefabForType(GroundType type)

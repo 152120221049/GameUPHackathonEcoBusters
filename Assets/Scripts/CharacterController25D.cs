@@ -37,18 +37,27 @@ public class CharacterController25D : MonoBehaviour
 
     [Header("--- BASAMAK VE KOT FARKI (STEP OFFSET) ---")]
     [Tooltip("Karakterin takılmadan otomatik adım atıp tırmanabileceği maksimum basamak yüksekliği")]
-    [SerializeField] private float stepHeight = 0.55f;
+    [SerializeField] private float stepHeight = 0.85f;
     [Tooltip("Basamağa tırmanma yumuşatma hızı")]
     [SerializeField] private float stepSmooth = 8f;
     [Tooltip("Basamak algılama ileri mesafesi")]
-    [SerializeField] private float stepCheckDistance = 0.45f;
+    [SerializeField] private float stepCheckDistance = 0.65f;
+
+    [Header("--- ZIPLAMA (JUMP) AYARLARI ---")]
+    [Tooltip("Zıplama kuvveti (Nehir çukurundan çıkmak ve engelleri aşmak için)")]
+    [SerializeField] private float jumpForce = 6.8f;
+    [Tooltip("Havadayken ekstra yerçekimi çarpanı (daha tok ve kontrollü iniş)")]
+    [SerializeField] private float fallMultiplier = 2.2f;
 
     // Dahili bileşenler ve durumlar
     private Rigidbody rb;
     private Vector2 inputVector;
     private Vector3 moveDirection;
     private bool isSprinting;
+    private bool jumpRequested;
     private float progressionSpeedMultiplier = 1f;
+    private Vector3 lastSafeGroundPosition;
+    private float safePosRecordTimer;
 
     public bool IsMoving => inputVector.sqrMagnitude > 0.01f;
     public float CurrentSpeed => new Vector2(rb.linearVelocity.x, rb.linearVelocity.z).magnitude;
@@ -127,10 +136,65 @@ public class CharacterController25D : MonoBehaviour
     {
         HandleMovement();
         RotateTowardsMovement();
+        HandleJumpAndFall();
         HandleStepOffset();
+        TrackSafeGroundPosition();
 
         // Fizik motorunun çarpmalardan dönme torku üretmesini engelle (yerinde dururken dönme sorununu çözer)
         rb.angularVelocity = Vector3.zero;
+    }
+
+    private void HandleJumpAndFall()
+    {
+        bool grounded = IsGrounded();
+
+        if (jumpRequested)
+        {
+            jumpRequested = false;
+            // Yerdeyken veya nehir kotundayken zıplamaya izin ver
+            if (grounded || transform.position.y <= -0.2f)
+            {
+                Vector3 v = rb.linearVelocity;
+                v.y = jumpForce;
+                rb.linearVelocity = v;
+
+                // Zıplama sesi çal
+                GameAudioAndJuiceManager.Instance?.PlayJumpSound(transform.position, 1.0f, 1.05f);
+
+                // Zıplama anında elastik uzama (Squash & Stretch) efekti
+                Transform visualTr = transform.Find("VisualRoot") ?? transform.Find("Model") ?? transform;
+                GameAudioAndJuiceManager.Instance?.PlaySquashAndStretch(visualTr, 1.28f, 0.22f);
+            }
+        }
+
+        // Havadayken kontrollü ve tok iniş için ekstra yerçekimi desteği
+        if (!grounded && rb.linearVelocity.y < 0.5f)
+        {
+            rb.AddForce(Vector3.down * (9.81f * (fallMultiplier - 1f)), ForceMode.Acceleration);
+        }
+    }
+
+    private void TrackSafeGroundPosition()
+    {
+        // Karakter normal kara seviyesindeyse (Y >= -0.15f) ve yerdeyse son güvenli konumu periyodik güncelle
+        if (transform.position.y >= -0.15f && IsGrounded())
+        {
+            safePosRecordTimer += Time.fixedDeltaTime;
+            if (safePosRecordTimer >= 0.4f)
+            {
+                safePosRecordTimer = 0f;
+                lastSafeGroundPosition = transform.position;
+            }
+        }
+        else if (transform.position.y < -3.5f) // Boşluğa uçurumdan düşüş koruması
+        {
+            if (lastSafeGroundPosition != Vector3.zero)
+            {
+                rb.linearVelocity = Vector3.zero;
+                transform.position = lastSafeGroundPosition + Vector3.up * 0.2f;
+                rb.position = transform.position;
+            }
+        }
     }
 
     public bool IsGrounded()
@@ -212,6 +276,7 @@ public class CharacterController25D : MonoBehaviour
             if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) x -= 1f;
 
             if (keyboard.leftShiftKey.isPressed) isSprinting = true;
+            if (keyboard.spaceKey.wasPressedThisFrame) jumpRequested = true;
         }
 
         if (gamepad != null)
@@ -229,11 +294,13 @@ public class CharacterController25D : MonoBehaviour
             if (gamepad.dpad.left.isPressed) x = -1f;
 
             if (gamepad.rightTrigger.isPressed || gamepad.buttonEast.isPressed) isSprinting = true;
+            if (gamepad.buttonSouth.wasPressedThisFrame) jumpRequested = true;
         }
 #else
         x = Input.GetAxisRaw("Horizontal");
         y = Input.GetAxisRaw("Vertical");
         isSprinting = Input.GetKey(KeyCode.LeftShift);
+        if (Input.GetKeyDown(KeyCode.Space)) jumpRequested = true;
 #endif
 
         inputVector = new Vector2(x, y);

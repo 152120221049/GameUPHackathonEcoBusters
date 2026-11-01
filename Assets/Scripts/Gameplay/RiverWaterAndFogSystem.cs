@@ -55,10 +55,18 @@ public class RiverWaterAndFogSystem : MonoBehaviour
         else
         {
             Material loadedMat = Resources.Load<Material>("M_RiverWater_URP");
+            if (loadedMat == null)
+            {
+                loadedMat = Resources.Load<Material>("M_FallbackLit");
+            }
 #if UNITY_EDITOR
             if (loadedMat == null)
             {
                 loadedMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefabs/Structures/M_RiverWater_URP.mat");
+            }
+            if (loadedMat == null)
+            {
+                loadedMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefabs/Structures/M_BridgePlank.mat");
             }
 #endif
             if (loadedMat != null)
@@ -73,8 +81,14 @@ public class RiverWaterAndFogSystem : MonoBehaviour
                     ? sampleRend.sharedMaterial.shader
                     : (Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Simple Lit") ?? Shader.Find("Standard"));
 
-                sharedWaterMaterial = new Material(sh);
+                sharedWaterMaterial = (sh != null) ? new Material(sh) : null;
             }
+        }
+
+        if (sharedWaterMaterial == null)
+        {
+            Debug.LogError("[RiverWaterAndFogSystem] Su materyali olusturulamadi!");
+            return;
         }
 
         sharedWaterMaterial.name = "M_RiverDynamicWater_Transparent";
