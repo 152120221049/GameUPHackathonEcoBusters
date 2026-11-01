@@ -12,9 +12,12 @@ public class RiverWaterAndFogSystem : MonoBehaviour
 {
     public static RiverWaterAndFogSystem Instance { get; private set; }
 
+    [Header("--- NEHİR SU YÜZEYİ MATERYALİ (URP) ---")]
+    [SerializeField] private Material waterMaterialAsset;
+
     [Header("--- NEHİR SU YÜZEYİ RENKLERİ ---")]
-    [SerializeField] private Color pollutedWaterColor = new Color(0.24f, 0.36f, 0.16f, 0.82f);
-    [SerializeField] private Color cleanWaterColor = new Color(0.10f, 0.74f, 0.92f, 0.62f);
+    [SerializeField] private Color pollutedWaterColor = new Color(0.18f, 0.42f, 0.35f, 0.85f);
+    [SerializeField] private Color cleanWaterColor = new Color(0.12f, 0.65f, 0.95f, 0.75f);
 
     private Material sharedWaterMaterial;
     private Material sharedFogCloudMaterial;
@@ -44,8 +47,36 @@ public class RiverWaterAndFogSystem : MonoBehaviour
     {
         if (sharedWaterMaterial != null) return;
 
-        Shader sh = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-        sharedWaterMaterial = new Material(sh);
+        // 1. Önce projede hazır bulunan URP Lit M_RiverWater_URP materyalini yüklemeyi dene
+        if (waterMaterialAsset != null)
+        {
+            sharedWaterMaterial = new Material(waterMaterialAsset);
+        }
+        else
+        {
+            Material loadedMat = Resources.Load<Material>("M_RiverWater_URP");
+#if UNITY_EDITOR
+            if (loadedMat == null)
+            {
+                loadedMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefabs/Structures/M_RiverWater_URP.mat");
+            }
+#endif
+            if (loadedMat != null)
+            {
+                sharedWaterMaterial = new Material(loadedMat);
+            }
+            else
+            {
+                // Mevcut sahnede veya projede URP Lit kullanan herhangi bir materyalden shader al
+                Renderer sampleRend = FindFirstObjectByType<Renderer>();
+                Shader sh = (sampleRend != null && sampleRend.sharedMaterial != null && sampleRend.sharedMaterial.shader != null)
+                    ? sampleRend.sharedMaterial.shader
+                    : (Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Simple Lit") ?? Shader.Find("Standard"));
+
+                sharedWaterMaterial = new Material(sh);
+            }
+        }
+
         sharedWaterMaterial.name = "M_RiverDynamicWater_Transparent";
 
         // URP Lit ve Standard Shader için Yarı-Saydam (Transparent) Mod Ayarları

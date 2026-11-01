@@ -310,7 +310,7 @@ public class ProceduralTerrainGenerator : MonoBehaviour
 
         // 6. Bölgeler Arasında Yol Ağını Oluştur (Road Network)
         GenerateRoadNetwork();
-        FixBridgeRamps();
+        BuildBridgesAtRoadCrossings();
 
         if (loading != null) loading.SetProgress(0.60f, "Bölgeler ve Altyapı Hazırlanıyor...");
         yield return null;
@@ -427,7 +427,7 @@ public class ProceduralTerrainGenerator : MonoBehaviour
         CarvePlayerBase();
         CarveSunkenRiverAndBridges(noiseOffsetX, noiseOffsetY);
         GenerateRoadNetwork();
-        FixBridgeRamps();
+        BuildBridgesAtRoadCrossings();
         SetupChunkContainers();
 
         if (autoSpawnPlayerAtBase)
@@ -486,6 +486,17 @@ public class ProceduralTerrainGenerator : MonoBehaviour
         if (electronicWastePrefab == null) electronicWastePrefab = LoadVox("Electronicwaste");
         if (solarPanelPrefab == null) solarPanelPrefab = LoadVox("SolarPanel");
         if (windTurbinePrefab == null) windTurbinePrefab = LoadVox("WindTurbine");
+
+        if (farmStructurePrefabs == null || farmStructurePrefabs.Count == 0)
+        {
+            farmStructurePrefabs = new List<GameObject>();
+            string[] sNames = { "farm-21-barn", "farm-2-windmill", "farm-49-coop", "farm-60-tractor", "farm-59-tractor2" };
+            foreach (var n in sNames)
+            {
+                var go = LoadVox(n);
+                if (go != null) farmStructurePrefabs.Add(go);
+            }
+        }
 
         if (farmTractorPrefabs == null || farmTractorPrefabs.Count == 0)
         {
@@ -768,28 +779,6 @@ public class ProceduralTerrainGenerator : MonoBehaviour
         {
             RiverCenterWorldPosition = riverCenterWorldPoints[riverCenterWorldPoints.Count / 2];
         }
-
-        // Nehir boyunca düzenli aralıklarla (her 36 karoda bir) yaya ve araç köprüleri kur:
-        // Kıyılara Bridge ramp yerleştirilir, nehir üstüne 1 karo yüksek kotta BridgeTop yerleştirilir
-        for (int i = 18; i < centerlineCells.Count - 18; i += 36)
-        {
-            Vector2Int c = centerlineCells[i];
-            for (int bx = -1; bx <= 1; bx++)
-            {
-                int x = c.x + bx;
-                // Güney Kıyı Rampası (Bridge ramp)
-                SetBridgeTileAt(x, c.y - riverHalfWidth - 1, GroundType.BridgeRamp);
-
-                // Nehir Üzerindeki Yükseltilmiş Platform (BridgeTop)
-                for (int by = -riverHalfWidth; by <= riverHalfWidth; by++)
-                {
-                    SetBridgeTileAt(x, c.y + by, GroundType.Bridge);
-                }
-
-                // Kuzey Kıyı Rampası (Bridge ramp)
-                SetBridgeTileAt(x, c.y + riverHalfWidth + 1, GroundType.BridgeRamp);
-            }
-        }
     }
 
     private void SetBridgeTileAt(int x, int y, GroundType type)
@@ -954,10 +943,9 @@ public class ProceduralTerrainGenerator : MonoBehaviour
 
                 if (rx >= 0 && rx < currentWidth && ry >= 0 && ry < currentHeight)
                 {
-                    // Nehirle kesiştiği yerde köprü (Bridge) yap, nehir akışını bozma
+                    // Nehir yatağını asla yol veya rastgele köprü ile ezme; köprüler sadece BuildBridgesAtRoadCrossings ile temiz kurulur
                     if (gridData[rx, ry] == GroundType.River)
                     {
-                        gridData[rx, ry] = GroundType.Bridge;
                         continue;
                     }
 
@@ -975,23 +963,36 @@ public class ProceduralTerrainGenerator : MonoBehaviour
     }
 
     /// <summary>
-    /// Yol ağının nehir üstü köprü geçişlerine (Bridge) bağlandığı kıyı karolarını BridgeRamp olarak işaretler.
-    /// Böylece yoldan köprüye geçiş her zaman pürüzsüz rampalarla gerçekleşir.
+    /// Yol ağının nehir ile kesiştiği gerçek noktalarda nehri dikine kesen düzgün, temiz köprüler ve rampalar inşa eder.
+    /// Nehir boyunca rastgele veya yamuk köprü parçası oluşmasını engeller.
     /// </summary>
-    private void FixBridgeRamps()
+    private void BuildBridgesAtRoadCrossings()
     {
-        for (int x = 1; x < currentWidth - 1; x++)
+        // Yol karosu olup nehre komşu olan ve karşı kıyısında da yol olan koridorları bul
+        for (int x = 2; x < currentWidth - 2; x++)
         {
-            for (int y = 1; y < currentHeight - 1; y++)
+            for (int y = 2; y < currentHeight - 2; y++)
             {
-                if (gridData[x, y] == GroundType.Road)
+                // Düşey geçiş (Kuzey - Güney yönünde nehir geçişi):
+                // Bu hücre Yol ve bir üstü Nehir ise, nehrin karşı kıyısına kadar tara
+                if (gridData[x, y] == GroundType.Road && gridData[x, y + 1] == GroundType.River)
                 {
-                    if (gridData[x + 1, y] == GroundType.Bridge ||
-                        gridData[x - 1, y] == GroundType.Bridge ||
-                        gridData[x, y + 1] == GroundType.Bridge ||
-                        gridData[x, y - 1] == GroundType.Bridge)
+                    int span = 0;
+                    while (y + 1 + span < currentHeight - 2 && gridData[x, y + 1 + span] == GroundType.River)
                     {
-                        gridData[x, y] = GroundType.BridgeRamp;
+                        span++;
+                    }
+
+                    int northLandY = y + 1 + span;
+                    // Karşı kıyıda da kara/yol varsa burası gerçek bir köprü geçiş noktasıdır
+                    if (span >= 1 && span <= 8 && northLandY < currentHeight - 2 && gridData[x, northLandY] != GroundType.Empty)
+                    {
+                        // Kıyı karoları normal Yol olarak kalır (rampa olmadan düz geçiş)
+                        // Nehir üstü boyunca düz köprü tabliyesi yerleştirilir
+                        for (int k = 1; k <= span; k++)
+                        {
+                            gridData[x, y + k] = GroundType.Bridge;
+                        }
                     }
                 }
             }
@@ -1207,10 +1208,17 @@ public class ProceduralTerrainGenerator : MonoBehaviour
                         Destroy(wCol);
                     }
 
-                    if (waterMat != null)
+                    Renderer wRend = waterSlab.GetComponent<Renderer>();
+                    if (wRend != null)
                     {
-                        Renderer wRend = waterSlab.GetComponent<Renderer>();
-                        if (wRend != null) wRend.sharedMaterial = waterMat;
+                        if (waterMat != null)
+                        {
+                            wRend.sharedMaterial = waterMat;
+                        }
+                        else
+                        {
+                            SetRendererColorSafe(wRend, new Color(0.12f, 0.58f, 0.88f, 0.82f));
+                        }
                     }
                 }
             }
@@ -1363,12 +1371,12 @@ public class ProceduralTerrainGenerator : MonoBehaviour
         {
             prefab = bridgeTopPrefab ?? bridgePrefab;
             rotation = DetermineBridgeTopRotation(coord);
-            worldPos.y = 1.0f; // Nehir üstü 1 karo yükseltilmiş kot
+            worldPos.y = 0f; // Rampa kaldırıldığı için köprü yolu kara/yol seviyesinde (0 kotu) pürüzsüz bağlanır
         }
         else if (type == GroundType.BridgeRamp)
         {
-            prefab = bridgeRampPrefab ?? bridgePrefab;
-            rotation = DetermineBridgeRampRotation(coord);
+            prefab = bridgeTopPrefab ?? bridgePrefab;
+            rotation = DetermineBridgeTopRotation(coord);
             worldPos.y = 0f;
         }
         else if (type == GroundType.Farmland)
@@ -1435,11 +1443,11 @@ public class ProceduralTerrainGenerator : MonoBehaviour
             {
                 tile.transform.position -= new Vector3(0f, worldTopShift, 0f);
             }
-            else if (type == GroundType.Bridge)
+            else if (type == GroundType.Bridge || type == GroundType.BridgeRamp)
             {
-                tile.transform.position = new Vector3(worldPos.x, 1.0f, worldPos.z);
+                tile.transform.position = new Vector3(worldPos.x, 0f, worldPos.z);
 
-                // Yükseltilmiş köprü tabliyesi için pürüzsüz düz yürüyüş collider'ı
+                // Köprü tabliyesi için pürüzsüz düz yürüyüş collider'ı (kara seviyesinde)
                 BoxCollider deckCol = tile.AddComponent<BoxCollider>();
                 deckCol.center = new Vector3(0f, 0.05f, 0f);
                 deckCol.size = new Vector3(tileSize * 0.99f, 0.2f, tileSize * 0.99f);
@@ -1457,11 +1465,6 @@ public class ProceduralTerrainGenerator : MonoBehaviour
                     railR.center = new Vector3(tileSize * 0.45f, 0.45f, 0f);
                     railR.size = new Vector3(0.2f, 0.8f, tileSize);
                 }
-            }
-            else if (type == GroundType.BridgeRamp)
-            {
-                // Kıyıdan köprüye (0'dan 1.0f'e) pürüzsüz micro-step BoxCollider'lar
-                AddSmoothRampColliders(tile, coord);
             }
 
             return tile;
@@ -1521,31 +1524,38 @@ public class ProceduralTerrainGenerator : MonoBehaviour
 
     private Quaternion DetermineBridgeTopRotation(Vector2Int coord)
     {
-        // BridgeTop.vox modelinde sağ kenarda (+X) korkuluk/çıkıntı yer alır.
-        // Dış sınır nehir boşluğuna bakacak şekilde rotasyon verilir:
+        // Nehir esasen X ekseni boyunca akıp Y ekseninde (Kuzey-Güney) genişler.
+        // Köprüler nehri dik keser (Kuzey-Güney doğrultusunda uzanır).
+        // Modelin tahta/korkuluk doğrultusunu yolun yönüne göre hizala:
         bool riverLeft = IsRiverOrEmpty(coord.x - 1, coord.y);
         bool riverRight = IsRiverOrEmpty(coord.x + 1, coord.y);
 
-        if (riverRight && !riverLeft) return Quaternion.identity; // Protrusion sağa (+X) bakar
-        if (riverLeft && !riverRight) return Quaternion.Euler(0f, 180f, 0f); // Protrusion sola (-X) bakar
+        // Yol Kuzey-Güney uzanıyorsa 90 derece döndürerek köprü tabliyesini yola bağla
+        if (riverLeft || riverRight)
+        {
+            return Quaternion.Euler(0f, 90f, 0f);
+        }
 
         bool riverUp = IsRiverOrEmpty(coord.x, coord.y + 1);
         bool riverDown = IsRiverOrEmpty(coord.x, coord.y - 1);
-        if (riverUp && !riverDown) return Quaternion.Euler(0f, 270f, 0f);
-        if (riverDown && !riverUp) return Quaternion.Euler(0f, 90f, 0f);
+        if (riverUp || riverDown)
+        {
+            return Quaternion.identity;
+        }
 
-        return Quaternion.identity;
+        return Quaternion.Euler(0f, 90f, 0f);
     }
 
     private Quaternion DetermineBridgeRampRotation(Vector2Int coord)
     {
-        // Bridge ramp kıyıdan köprüye (0 kotundan +1 kotuna) tırmanır:
-        if (IsBridgeAt(coord.x, coord.y + 1)) return Quaternion.identity; // Kuzeye tırmanış (+Z)
-        if (IsBridgeAt(coord.x, coord.y - 1)) return Quaternion.Euler(0f, 180f, 0f); // Güneye tırmanış (-Z)
-        if (IsBridgeAt(coord.x + 1, coord.y)) return Quaternion.Euler(0f, 90f, 0f); // Doğuya tırmanış (+X)
-        if (IsBridgeAt(coord.x - 1, coord.y)) return Quaternion.Euler(0f, 270f, 0f); // Batıya tırmanış (-X)
+        // Bridge ramp kıyıdan köprüye (0 kotundan +1 kotuna) tırmanır.
+        // Eğer rampanın yönü ters bağlanmışsa 180 derece tersine çevrilerek köprüye tam oturması sağlanır.
+        if (IsBridgeAt(coord.x, coord.y + 1)) return Quaternion.Euler(0f, 180f, 0f); // Köprü Kuzeyde (+Z), rampa köprüye doğru yükselir
+        if (IsBridgeAt(coord.x, coord.y - 1)) return Quaternion.identity;             // Köprü Güneyde (-Z), rampa köprüye doğru yükselir
+        if (IsBridgeAt(coord.x + 1, coord.y)) return Quaternion.Euler(0f, 270f, 0f); // Köprü Doğuda (+X), rampa köprüye doğru yükselir
+        if (IsBridgeAt(coord.x - 1, coord.y)) return Quaternion.Euler(0f, 90f, 0f);  // Köprü Batıda (-X), rampa köprüye doğru yükselir
 
-        return Quaternion.identity;
+        return Quaternion.Euler(0f, 90f, 0f);
     }
 
     private void AddSmoothRampColliders(GameObject tile, Vector2Int coord)
@@ -1733,11 +1743,26 @@ public class ProceduralTerrainGenerator : MonoBehaviour
     {
         if (renderer == null) return;
         Material mat = renderer.sharedMaterial;
-        if (mat == null) return;
+        
+        // Eğer materyal yoksa veya URP'de varsayılan Built-in Default-Material (ve pembeleşmeye müsait) ise URP uyumlu yeni materyal ata
+        if (mat == null || mat.shader == null || mat.shader.name == "Default-Material" || mat.shader.name == "Standard")
+        {
+            Material urpBase = RiverWaterAndFogSystem.Instance != null ? RiverWaterAndFogSystem.Instance.SharedWaterMaterial : null;
+            if (urpBase != null && urpBase.shader != null)
+            {
+                mat = new Material(urpBase.shader);
+            }
+            else
+            {
+                Shader s = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Simple Lit") ?? Shader.Find("Standard");
+                mat = new Material(s);
+            }
+            renderer.material = mat;
+        }
 
         if (mat.HasProperty("_BaseColor"))
             mat.SetColor("_BaseColor", color);
-        else if (mat.HasProperty("_Color"))
+        if (mat.HasProperty("_Color"))
             mat.SetColor("_Color", color);
     }
 

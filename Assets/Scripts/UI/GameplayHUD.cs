@@ -1672,8 +1672,13 @@ public class GameplayHUD : MonoBehaviour
         {
             if (promptBoxBg != null) promptBoxBg.color = new Color(0.08f, 0.1f, 0.12f, 0.88f);
             bool hasVac = PlayerProgression.Instance != null && PlayerProgression.Instance.HasVacuumUnlocked;
-            string vacTip = hasVac ? "<b>[Sağ Tık / Space]</b> Vakumla Çek  |  " : "";
-            promptText.text = $"<color=#E0E0E0><b>[Sol Tık / E]</b> Çöp Çubuğuyla Topla / Etkileşim  |  {vacTip}<b>[B]</b> İnşa & Enerji  |  <b>[ESC]</b> Ayarlar</color>";
+            string vacTip = hasVac ? "<b>[Sağ Tık]</b> Vakum  |  " : "";
+            
+            // Eğer oyuncunun elinde organik atık veya hurda birikmişse nazikçe [B] tuşunu ve ağaç/yapı dikimini fısılda
+            bool hasMaterials = inventory != null && (inventory.GetCount(ItemType.OrganicWaste) >= 5 || inventory.GetCount(ItemType.ScrapMetal) >= 5);
+            string buildHint = hasMaterials ? "<color=#50FA7B><b>[B] Ağaç Dik & İnşa Et ✨</b></color>" : "<b>[B]</b> İnşa & Enerji";
+
+            promptText.text = $"<color=#E0E0E0><b>[Sol Tık / E]</b> Topla  |  {vacTip}{buildHint}  |  <b>[ESC]</b> Ayarlar</color>";
         }
     }
 
