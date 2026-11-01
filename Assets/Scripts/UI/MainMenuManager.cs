@@ -59,67 +59,25 @@ public class MainMenuManager : MonoBehaviour
         InitializeAudioSettings();
         InitializeGraphicsSettings();
         EnsureMainMenuMusic();
-        ApplyJuicyButtonStyling();
+        EnsureLogoDoesNotBlockRaycasts();
     }
 
     /// <summary>
-    /// Menü butonlarına asset gelene kadar modern, canlı, hover animasyonlu ve gölgeli şık bir görünüm kazandırır.
+    /// Menü logosunun (EcoBusters) şeffaf veya alt kısımlarının 'Btn_Play' butonunun tıklamasını engellemesini (Raycast blocking) önler.
     /// </summary>
-    private void ApplyJuicyButtonStyling()
+    private void EnsureLogoDoesNotBlockRaycasts()
     {
-        StyleButton("Btn_Play", new Color(0.15f, 0.68f, 0.38f), new Color(0.22f, 0.82f, 0.46f), "BAŞLA");
-        StyleButton("Btn_Settings", new Color(0.18f, 0.45f, 0.72f), new Color(0.25f, 0.58f, 0.88f), "AYARLAR");
-        StyleButton("Btn_HowToPlay", new Color(0.78f, 0.52f, 0.18f), new Color(0.92f, 0.65f, 0.25f), "REHBER");
-        StyleButton("Btn_Quit", new Color(0.72f, 0.22f, 0.22f), new Color(0.88f, 0.30f, 0.30f), "ÇIKIŞ");
-        StyleButton("Btn_SettingsBack", new Color(0.28f, 0.32f, 0.38f), new Color(0.38f, 0.44f, 0.52f), "GERİ");
-        StyleButton("Btn_HowToPlayBack", new Color(0.28f, 0.32f, 0.38f), new Color(0.38f, 0.44f, 0.52f), "GERİ");
-    }
-
-    private void StyleButton(string btnName, Color baseColor, Color highlightColor, string prefixTag)
-    {
-        Button btn = FindComponentByName<Button>(btnName);
-        if (btn == null) return;
-
-        // 1. Canlı renk geçişi (Color Tint)
-        ColorBlock cb = btn.colors;
-        cb.normalColor = baseColor;
-        cb.highlightedColor = highlightColor;
-        cb.pressedColor = baseColor * 0.75f;
-        cb.selectedColor = highlightColor;
-        cb.fadeDuration = 0.12f;
-        btn.colors = cb;
-
-        // 2. Boyut ve yumuşak kenarlık hissi
-        RectTransform rt = btn.GetComponent<RectTransform>();
-        if (rt != null)
+        if (mainMenuPanel != null)
         {
-            rt.sizeDelta = new Vector2(360f, 62f);
-        }
-
-        // 3. Buton Arka Planına Canlı Kontur / Çerçeve (Outline efekti)
-        Outline outline = btn.GetComponent<Outline>() ?? btn.gameObject.AddComponent<Outline>();
-        outline.effectColor = new Color(1f, 1f, 1f, 0.35f);
-        outline.effectDistance = new Vector2(2f, -2f);
-
-        // 4. Yazı Tipi ve Formatlama
-        TextMeshProUGUI tmp = btn.GetComponentInChildren<TextMeshProUGUI>();
-        if (tmp != null)
-        {
-            tmp.fontStyle = FontStyles.Bold;
-            tmp.fontSize = 24f;
-            tmp.color = Color.white;
-            tmp.characterSpacing = 3.5f;
-
-            // Yazıya hafif derinlik gölgesi
-            Outline textOutline = tmp.GetComponent<Outline>() ?? tmp.gameObject.AddComponent<Outline>();
-            textOutline.effectColor = new Color(0f, 0f, 0f, 0.85f);
-            textOutline.effectDistance = new Vector2(1.5f, -1.5f);
-        }
-
-        // 5. Hover & Click Juice Animasyonu (Üzerine gelince büyüme ve tıklama hissi)
-        if (btn.GetComponent<JuicyMenuButtonHover>() == null)
-        {
-            btn.gameObject.AddComponent<JuicyMenuButtonHover>();
+            Image[] images = mainMenuPanel.GetComponentsInChildren<Image>(true);
+            foreach (var img in images)
+            {
+                // Buton olmayan büyük dekoratif görsellerin tıklamayı engellemesini kapat
+                if (img.GetComponent<Button>() == null && (img.gameObject.name == "Image" || img.gameObject.name.Contains("Logo")))
+                {
+                    img.raycastTarget = false;
+                }
+            }
         }
     }
 
@@ -315,28 +273,18 @@ public class MainMenuManager : MonoBehaviour
     #region Ana Menü Butonları
     public void PlayGame()
     {
+        Debug.Log("[MainMenuManager] PlayGame tıklandı! Sahne yükleniyor: " + gameSceneName);
         GameAudioAndJuiceManager.Instance?.PlayUiClick();
         Time.timeScale = 1f;
 
-        bool isInDifferentScene = !string.IsNullOrEmpty(gameSceneName) &&
-                                 SceneManager.GetActiveScene().name != gameSceneName;
-
-        if (loadGameSceneOnPlay || isInDifferentScene)
+        // İster MainMenu sahnesinde olsun ister başka sahnede, doğrudan hedef oyun sahnesini yükle
+        if (!string.IsNullOrEmpty(gameSceneName))
         {
-            if (!string.IsNullOrEmpty(gameSceneName))
-            {
-                SceneManager.LoadScene(gameSceneName);
-            }
-            else
-            {
-                SceneManager.LoadScene(1);
-            }
+            SceneManager.LoadScene(gameSceneName);
         }
         else
         {
-            if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
-            if (settingsPanel != null) settingsPanel.SetActive(false);
-            if (howToPlayPanel != null) howToPlayPanel.SetActive(false);
+            SceneManager.LoadScene(1);
         }
     }
 
