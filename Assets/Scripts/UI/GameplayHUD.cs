@@ -1675,7 +1675,7 @@ public class GameplayHUD : MonoBehaviour
             string vacTip = hasVac ? "<b>[Sağ Tık]</b> Vakum  |  " : "";
             
             // Eğer çantada çöp varsa oyuncuya ne yapacağını açıkça göster:
-            int totalTrash = inventory != null ? inventory.TotalItemsCount : 0;
+            int totalTrash = inventory != null ? inventory.TotalWasteCount : 0;
             string guideHint = "";
             if (totalTrash >= 10 && terrainGenerator != null && playerTransform != null)
             {
