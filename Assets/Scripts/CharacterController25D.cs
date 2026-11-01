@@ -151,8 +151,8 @@ public class CharacterController25D : MonoBehaviour
         if (jumpRequested)
         {
             jumpRequested = false;
-            // Yerdeyken veya nehir kotundayken zıplamaya izin ver
-            if (grounded || transform.position.y <= -0.2f)
+            // Sadece yerdeyken (ve dikey hızı çok yüksek değilken) zıplamaya izin ver
+            if (grounded && rb.linearVelocity.y < 1.5f)
             {
                 Vector3 v = rb.linearVelocity;
                 v.y = jumpForce;
@@ -201,9 +201,23 @@ public class CharacterController25D : MonoBehaviour
     {
         CapsuleCollider capsule = GetComponent<CapsuleCollider>();
         float halfHeight = capsule != null ? capsule.height * 0.5f : 1.0f;
-        float radius = capsule != null ? capsule.radius * 0.85f : 0.4f;
-        Vector3 origin = transform.position - new Vector3(0f, halfHeight - radius, 0f);
-        return Physics.CheckSphere(origin, radius + 0.12f, ~0, QueryTriggerInteraction.Ignore);
+        float radius = capsule != null ? capsule.radius * 0.85f : 0.35f;
+
+        // Kendi collider'larımızı hariç tutarak ayak tabanından aşağı raycast / spherecast at
+        Vector3 origin = transform.position + capsule.center;
+        float checkDist = halfHeight + 0.18f;
+
+        RaycastHit[] hits = Physics.SphereCastAll(origin, radius, Vector3.down, checkDist, ~0, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider col = hits[i].collider;
+            if (col == null || col.transform.root == transform.root || col.isTrigger) continue;
+            if (col.GetComponentInParent<CollectibleItem>() != null) continue;
+
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
