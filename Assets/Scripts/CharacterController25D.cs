@@ -144,16 +144,32 @@ public class CharacterController25D : MonoBehaviour
         rb.angularVelocity = Vector3.zero;
     }
 
+    private bool isJumping;
+    private float jumpCooldownTimer;
+
     private void HandleJumpAndFall()
     {
+        if (jumpCooldownTimer > 0f)
+            jumpCooldownTimer -= Time.fixedDeltaTime;
+
         bool grounded = IsGrounded();
+
+        // Yere indiğinde zıplama kilidini sıfırla
+        if (grounded && rb.linearVelocity.y <= 0.1f && jumpCooldownTimer <= 0f)
+        {
+            isJumping = false;
+        }
 
         if (jumpRequested)
         {
             jumpRequested = false;
-            // Sadece yerdeyken (ve dikey hızı çok yüksek değilken) zıplamaya izin ver
-            if (grounded && rb.linearVelocity.y < 1.5f)
+
+            // Zıplama: Karakter daha önce havaya fırlamamışsa ve yerdeyse (veya su/çukurdaki toleransta)
+            if (!isJumping && (grounded || transform.position.y <= -0.15f) && jumpCooldownTimer <= 0f)
             {
+                isJumping = true;
+                jumpCooldownTimer = 0.25f; // Bir sonraki zıplama için kısa güvenlik kilidi
+
                 Vector3 v = rb.linearVelocity;
                 v.y = jumpForce;
                 rb.linearVelocity = v;
@@ -201,20 +217,28 @@ public class CharacterController25D : MonoBehaviour
     {
         CapsuleCollider capsule = GetComponent<CapsuleCollider>();
         float halfHeight = capsule != null ? capsule.height * 0.5f : 1.0f;
-        float radius = capsule != null ? capsule.radius * 0.85f : 0.35f;
+        float radius = capsule != null ? capsule.radius * 0.8f : 0.35f;
 
-        // Kendi collider'larımızı hariç tutarak ayak tabanından aşağı raycast / spherecast at
-        Vector3 origin = transform.position + capsule.center;
-        float checkDist = halfHeight + 0.18f;
+        // Ayak tabanının hemen altını (0.1m yukarısından aşağıya doğru) kontrol et
+        Vector3 footOrigin = transform.position - new Vector3(0f, halfHeight - 0.15f, 0f);
+        float rayDist = 0.32f;
 
-        RaycastHit[] hits = Physics.SphereCastAll(origin, radius, Vector3.down, checkDist, ~0, QueryTriggerInteraction.Ignore);
-        for (int i = 0; i < hits.Length; i++)
+        if (Physics.Raycast(footOrigin, Vector3.down, out RaycastHit hit, rayDist, ~0, QueryTriggerInteraction.Ignore))
         {
-            Collider col = hits[i].collider;
-            if (col == null || col.transform.root == transform.root || col.isTrigger) continue;
-            if (col.GetComponentInParent<CollectibleItem>() != null) continue;
+            if (hit.collider != null && hit.collider.transform.root != transform.root && !hit.collider.isTrigger)
+                return true;
+        }
 
-            return true;
+        // Raycast kaçırırsa spherecheck ile zemin teması tara
+        Collider[] overlaps = Physics.OverlapSphere(footOrigin + Vector3.down * 0.1f, radius, ~0, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < overlaps.Length; i++)
+        {
+            Collider col = overlaps[i];
+            if (col != null && col.transform.root != transform.root && !col.isTrigger)
+            {
+                if (col.GetComponentInParent<CollectibleItem>() == null)
+                    return true;
+            }
         }
 
         return false;
