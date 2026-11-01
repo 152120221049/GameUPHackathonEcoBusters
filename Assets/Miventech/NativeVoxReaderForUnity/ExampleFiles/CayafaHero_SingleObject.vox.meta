@@ -1,0 +1,20 @@
+fileFormatVersion: 2
+guid: b0f64a6aa4e3d6a4991fc0dd4263cabe
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: ab5829fc25efa6b48a46fc7ef9225ba8, type: 3}
+  maxAtlasSize: 4096
+  maxQuadSize: 64
+  scale: 0.1
+AssetOrigin:
+  serializedVersion: 1
+  productId: 356420
+  packageName: Native Vox Reader For Unity
+  packageVersion: 1.0
+  assetPath: Assets/Miventech/NativeVoxReaderForUnity/ExampleFiles/CayafaHero_SingleObject.vox
+  uploadId: 855992

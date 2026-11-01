@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 96ebba36090c0e44cbdafb5b5b40f62d
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 356420
+  packageName: Native Vox Reader For Unity
+  packageVersion: 1.0
+  assetPath: Assets/Miventech/NativeVoxReaderForUnity/Runtime/Data/VoxFile.cs
+  uploadId: 855992

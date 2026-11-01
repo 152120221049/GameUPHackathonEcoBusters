@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ECOFORGE: Build a Sustainable Future</title>
+    <link rel="stylesheet" href="/src/styles/main.css" />
+    <link rel="stylesheet" href="/src/styles/components.css" />
+  </head>
+  <body>
+    <!-- PHASER 3 MOTOR KANVASI -->
+    <div id="game-container"></div>
+
+    <!-- OYUN İÇİ ETKİLEŞİMLİ ARAYÜZ (HUD & PENCERELER) -->
+    <div id="ui-root">
+      <!-- ÜST PANEL (TOPBAR) -->
+      <div id="top-bar" class="interactive">
+        <div class="top-section">
+          <div class="resource-pill" id="pill-metal" title="Metal Plaka">
+            <span class="resource-icon" style="background: #a0a0a0"></span>
+            <span id="val-metal">0</span>
+          </div>
+          <div class="resource-pill" id="pill-wire" title="Bakır Kablo">
+            <span class="resource-icon" style="background: #d35400"></span>
+            <span id="val-wire">0</span>
+          </div>
+          <div class="resource-pill" id="pill-silicon" title="Saf Silisyum">
+            <span class="resource-icon" style="background: #4a69bd"></span>
+            <span id="val-silicon">0</span>
+          </div>
+          <div class="resource-pill" id="pill-solar" title="Güneş Paneli">
+            <span class="resource-icon" style="background: #0c2461"></span>
+            <span id="val-solar">0</span>
+          </div>
+          <div class="resource-pill" id="pill-science" title="Bilim Puanı">
+            <span style="color: #38bdf8">🧪</span>
+            <span id="val-science" style="color: #38bdf8">0</span>
+          </div>
+        </div>
+
+        <div class="top-section">
+          <!-- ENERJİ GÖSTERGESİ -->
+          <div class="stat-gauge" title="Enerji Şebekesi">
+            <div class="stat-label">
+              <span>⚡ Enerji</span>
+              <span id="val-energy-ratio">0 kW</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="bar-energy" class="progress-bar-fill" style="width: 100%"></div>
+            </div>
+          </div>
+
+          <!-- SU GÖSTERGESİ -->
+          <div class="stat-gauge" title="Su Rezervi ve Stres">
+            <div class="stat-label">
+              <span>💧 Su</span>
+              <span id="val-water">0 L</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="bar-water" class="progress-bar-fill" style="width: 100%; background: #0284c7"></div>
+            </div>
+          </div>
+
+          <!-- KARBON VE İKLİM ROZETİ -->
+          <div class="stat-gauge" title="Atmosferik Karbon">
+            <div class="stat-label">
+              <span>🌱 CO2</span>
+              <span id="val-co2">420 ppm</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div id="bar-co2" class="progress-bar-fill" style="width: 40%; background: #eab308"></div>
+            </div>
+          </div>
+
+          <div id="badge-eco" class="badge-tag" style="background: #065f46; color: #34d399">
+            Ekosistem: %80
+          </div>
+        </div>
+
+        <!-- ZAMAN VE MENÜ BUTONLARI -->
+        <div class="top-section">
+          <div style="font-size: 13px; font-weight: 600; color: #94a3b8">
+            <span id="val-day">Gün 1</span> • <span id="val-clock">08:00</span>
+          </div>
+
+          <!-- HIZ KONTROLLERİ -->
+          <div style="display: flex; gap: 2px">
+            <button class="tab-btn" id="btn-speed-0" style="padding: 4px 8px">⏸</button>
+            <button class="tab-btn active" id="btn-speed-1" style="padding: 4px 8px">1x</button>
+            <button class="tab-btn" id="btn-speed-2" style="padding: 4px 8px">2x</button>
+            <button class="tab-btn" id="btn-speed-5" style="padding: 4px 8px">5x</button>
+          </div>
+
+          <!-- MODAL BUTONLARI -->
+          <button class="tab-btn" id="btn-open-tech">🔬 Teknoloji</button>
+          <button class="tab-btn" id="btn-open-quests">📋 Görevler</button>
+          <button class="tab-btn" id="btn-open-academy" style="background: #065f46; color: #34d399">🎓 İklim Akademisi</button>
+          <button class="tab-btn" id="btn-open-report">📊 Eko-Rapor</button>
+          <button class="tab-btn" id="btn-save-game">💾 Kaydet</button>
+          <button class="tab-btn" id="btn-return-menu" style="background: #334155">🏠 Ana Menü</button>
+        </div>
+      </div>
+
+      <!-- SAĞ TEFTİŞ PANELİ (INSPECTOR) -->
+      <div id="inspector-panel" class="interactive">
+        <div class="inspector-header">
+          <span class="inspector-title" id="insp-name">Maden Çıkarıcı</span>
+          <button class="close-btn" id="btn-close-insp">✕</button>
+        </div>
+        <div style="font-size: 13px; color: #94a3b8" id="insp-desc"></div>
+        <div style="font-size: 13px">
+          <strong>Durum:</strong> <span id="insp-status" style="color: #34d399">Çalışıyor</span>
+        </div>
+        <div style="font-size: 13px">
+          <strong>Tarif:</strong>
+          <select id="insp-recipe-select" style="background:#0f172a;color:#fff;border:1px solid #334155;border-radius:4px;padding:4px 8px;margin-top:2px;width:100%"></select>
+        </div>
+        <div style="font-size: 13px">
+          <strong>Güç:</strong> <span id="insp-power">15 kW</span>
+        </div>
+        <div style="font-size: 13px">
+          <strong>Emisyon:</strong> <span id="insp-emission">+0.15 kg CO2/s</span>
+        </div>
+        <div style="font-size: 13px; margin-top: 4px">
+          <strong>Depolanan Malzemeler:</strong>
+          <div id="insp-inventory-slots" style="background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 6px; font-size: 12px; min-height: 32px; margin-top: 4px">
+            Boş
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px; margin-top: 4px">
+          <button class="tab-btn" id="btn-take-outputs" style="flex: 1; background: #059669; padding: 6px; font-size: 12px">📥 Çıktıları Al</button>
+          <button class="tab-btn" id="btn-feed-inputs" style="flex: 1; background: #0284c7; padding: 6px; font-size: 12px">📤 Girdi Yükle</button>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 6px">
+          <button class="tab-btn" id="btn-toggle-machine" style="flex: 1">Durdur / Başlat</button>
+          <button class="tab-btn" id="btn-demolish-machine" style="background: #991b1b; color: #fca5a5">Kaldır (X)</button>
+        </div>
+      </div>
+
+      <!-- ALT İNŞA ÇUBUĞU (BOTTOM BUILD BAR) -->
+      <div id="bottom-bar" class="interactive">
+        <div class="build-tabs">
+          <button class="tab-btn active" data-cat="mining">⛏️ Madencilik</button>
+          <button class="tab-btn" data-cat="processing">🏭 İşleme & Eritme</button>
+          <button class="tab-btn" data-cat="energy">⚡ Enerji</button>
+          <button class="tab-btn" data-cat="water">💧 Su & Tarım</button>
+          <button class="tab-btn" data-cat="logistics">📦 Lojistik (Bantlar)</button>
+          <button class="tab-btn" data-cat="recycling">♻️ Geri Dönüşüm</button>
+          <button class="tab-btn" data-cat="ecology">🌳 Ekoloji</button>
+          <button class="tab-btn" id="btn-tool-demolish" style="background: #991b1b; color: #fca5a5">🚜 Yıkım Modu (X)</button>
+        </div>
+        <div class="build-items-row" id="build-cards-container">
+          <!-- Dinamik bina kartları yüklenecektir -->
+        </div>
+      </div>
+    </div>
+
+    <!-- SENARYO & ZORLUK SEÇİM MODALI -->
+    <div id="modal-scenario" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>🌍 Senaryo ve Zorluk Seviyesi Seçimi</h2>
+          <button class="close-btn" data-close="modal-scenario">✕</button>
+        </div>
+        <div class="modal-body" id="scenario-list-container">
+          <!-- Senaryolar buraya dinamik eklenir -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TEKNOLOJİ AĞACI MODALI -->
+    <div id="modal-tech" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>🔬 Teknoloji ve Araştırma Ağacı</h2>
+          <button class="close-btn" data-close="modal-tech">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="font-size: 13px; color: #94a3b8">
+            Bilim Puanlarınızı harcayarak temiz enerji, ileri geri dönüşüm, su arıtma ve otomasyon teknolojilerini açın.
+          </div>
+          <div class="tech-grid" id="tech-nodes-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GÖREVLER MODALI -->
+    <div id="modal-quests" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>📋 Stratejik Görevler ve Rehber</h2>
+          <button class="close-btn" data-close="modal-quests">✕</button>
+        </div>
+        <div class="modal-body" id="quests-list-container"></div>
+      </div>
+    </div>
+
+    <!-- İKLİM AKADEMİSİ MODALI -->
+    <div id="modal-academy" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>🎓 İklim Akademisi (Scientific Climate Hub)</h2>
+          <button class="close-btn" data-close="modal-academy">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="font-size: 13px; color: #cbd5e1; background: #0f172a; padding: 12px; border-radius: 8px">
+            Bu bölümdeki tüm içerikler <strong>IPCC AR6, UNFCCC, NASA Climate, WMO, UNEP ve FAO</strong> bilimsel raporlarına dayalıdır. Her konuyu okuyup mini testleri tamamlayarak öğrenme sertifikanızı geliştirin.
+          </div>
+          <div class="academy-list" id="academy-topics-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEST & DEĞERLENDİRME MODALI -->
+    <div id="modal-quiz" class="modal-overlay">
+      <div class="modal-content" style="max-width: 650px">
+        <div class="modal-header">
+          <h2>🧠 Bilgi Testi ve Değerlendirme</h2>
+          <button class="close-btn" data-close="modal-quiz">✕</button>
+        </div>
+        <div class="modal-body" id="quiz-body-container"></div>
+      </div>
+    </div>
+
+    <!-- İKLİM KRİZİ MODALI -->
+    <div id="modal-crisis" class="modal-overlay">
+      <div class="modal-content" style="max-width: 680px">
+        <div class="modal-header" style="background: #450a0a">
+          <h2 style="color: #f87171">⚠️ İklim Olayı Uyarısı</h2>
+        </div>
+        <div class="modal-body" id="crisis-body-container"></div>
+      </div>
+    </div>
+
+    <!-- SÜRDÜRÜLEBİLİRLİK RAPORU MODALI -->
+    <div id="modal-report" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>📊 Sürdürülebilirlik Karnesi ve Karbon Bilançosu</h2>
+          <button class="close-btn" data-close="modal-report">✕</button>
+        </div>
+        <div class="modal-body" id="report-body-container"></div>
+      </div>
+    </div>
+
+    <!-- AYARLAR & HAKKINDA MODALI -->
+    <div id="modal-settings" class="modal-overlay">
+      <div class="modal-content" style="max-width: 550px">
+        <div class="modal-header">
+          <h2>⚙️ Ayarlar ve Hakkında</h2>
+          <button class="close-btn" data-close="modal-settings">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span>Ana Ses Düzeyi</span>
+            <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.7" />
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span>Sesi Sessize Al</span>
+            <input type="checkbox" id="check-mute" />
+          </div>
+          <hr style="border-color: #334155" />
+          <div>
+            <h3>Hakkında & Vizyon</h3>
+            <p style="font-size: 13px; color: #94a3b8; margin-top: 6px">
+              ECOFORGE, karmaşık fabrika kurma mekaniklerini iklim bilimi eğitimiyle sentezleyen bir ciddi oyun (serious game) projesidir.
+              Geliştirici: Google Antigravity Agent.
+            </p>
+          </div>
+          <button class="tab-btn" id="btn-reset-save" style="background: #991b1b; color: #fca5a5; margin-top: 10px">
+            Kayıtlı Oyunu Tamamen Sıfırla
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UYGULAMA GİRİŞİ -->
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

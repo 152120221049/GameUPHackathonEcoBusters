@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 06356c34e127ccb40a887200db871d94
+AssemblyDefinitionImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 356420
+  packageName: Native Vox Reader For Unity
+  packageVersion: 1.0
+  assetPath: Assets/Miventech/NativeVoxReaderForUnity/Runtime/Miventech.NativeVoxReader.asmdef
+  uploadId: 855992

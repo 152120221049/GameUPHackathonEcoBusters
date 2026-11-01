@@ -1,0 +1,20 @@
+{
+  "name": "com.miventech.nativevoxreader",
+  "version": "1.0.0",
+  "displayName": "Native Vox Reader",
+  "description": "Seamlessly import MagicaVoxel .vox files as native Unity assets.",
+  "unity": "2020.3",
+  "author": {
+    "name": "Miventech",
+    "email": "support@miventech.com",
+    "url": "https://github.com/miventech"
+  },
+  "keywords": [
+    "vox",
+    "magicavoxel",
+    "importer",
+    "voxel",
+    "3d"
+  ],
+  "category": "3D"
+}
